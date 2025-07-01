@@ -7,14 +7,9 @@
 #include <netinet/in.h>
 
 int run_node(int argc, char *argv[]){
-
-
     if (argc > 1 && strcmp(argv[1], "--leader") == 0){
         run_as_leader();
-
     }
-
-
     return 0;
 }
 
@@ -61,5 +56,27 @@ void run_as_leader() {
 }
 
 void run_as_worker(int leader_ip){
+
+    //Need to connect to leader 
+    int sockfd;
+    struct sockaddr_in server_addr;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("socket");
+        exit(1);
+    }
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;  
+    server_addr.sin_port = htons(8080);
+    server_addr.sin_addr.s_addr = inet_addr(leader_ip);
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connect");
+        close(sockfd);
+        exit(1);
+    }
+
+    //send message
+    
 
 }
