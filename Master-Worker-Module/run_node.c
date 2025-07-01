@@ -98,7 +98,7 @@ void run_as_worker(int leader_ip){
         // Send a message to client
 
         char *message = "Hello from worker";
-        while(true)
+        while(1)
         {
             if (send(sockfd, message, strlen(message), 0) < 0) 
             {
