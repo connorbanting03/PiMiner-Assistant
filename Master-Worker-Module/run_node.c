@@ -68,7 +68,7 @@ void run_as_leader() {
             close(newsockfd);
             continue;
         }
-        prinft("Received %zd bytes\n", bytes_received);
+        printf("Received %zd bytes\n", bytes_received);
         buffer[bytes_received] = '\0'; // Null-terminate the received string
         printf("Received message: %s\n", buffer);
 
