@@ -1,11 +1,9 @@
-// leader.h
+#ifndef RUN_NODE_H
+#define RUN_NODE_H
 
-#ifndef LEADER_H
-#define LEADER_H
+int run_node(int argc, char *argv[]);
 
-int run_node(int argc, char *argv[])
-
-void run_as_leader(int port);
-void run_as_worker(int port);
+void run_as_leader();
+void run_as_worker(int leader_ip);
 
 #endif
