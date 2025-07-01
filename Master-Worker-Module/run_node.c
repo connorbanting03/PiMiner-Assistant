@@ -75,10 +75,18 @@ void run_as_leader() {
                 buffer[bytes_received] = '\0'; // Null-terminate the received string
                 printf("Received message: %s\n", buffer);
             }
+            //reply
+            const char *reply = "Message received by leader\0";
+            ssize_t bytes_sent = send(newsockfd, reply, strlen(reply), 0);
+            if (bytes_sent < 0) {
+                perror("send");
+                close(newsockfd);
+                continue;
+            }
+
 
         }
 
-       
 
         printf("Client connected\n");
         close(newsockfd);
@@ -106,8 +114,6 @@ void run_as_worker(int leader_ip){
         perror("connect");
         // Send a message to client
         
-  
-    
         close(sockfd);
         exit(1);
     }
@@ -127,6 +133,7 @@ void run_as_worker(int leader_ip){
         }
 
         printf("socket fd is %d\n", sockfd);
+        sleep(2);
     }
     printf("breaking out of loop\n");
     //send message
