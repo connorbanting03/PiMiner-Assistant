@@ -70,9 +70,12 @@ void run_as_leader() {
                 close(newsockfd);
                 continue;
             }
-            printf("Received %zd bytes\n", bytes_received);
-            buffer[bytes_received] = '\0'; // Null-terminate the received string
-            printf("Received message: %s\n", buffer);
+            if(bytes_received > 0){
+                printf("Received %zd bytes\n", bytes_received);
+                buffer[bytes_received] = '\0'; // Null-terminate the received string
+                printf("Received message: %s\n", buffer);
+            }
+
         }
 
        
@@ -109,7 +112,7 @@ void run_as_worker(int leader_ip){
         exit(1);
     }
 
-    char *message = "Hello from worker";
+    char *message = "Hello from worker\0";
     while(1)
     {   
         int bytes_sent = send(sockfd, message, strlen(message), 0);
