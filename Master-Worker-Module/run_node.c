@@ -62,15 +62,20 @@ void run_as_leader() {
         // Setup polling to recieve message string
         char buffer[256];
         memset(buffer, 0, sizeof(buffer));
-        ssize_t bytes_received = recv(newsockfd, buffer, sizeof(buffer) - 1, 0);
-        if (bytes_received < 0) {
-            perror("recv");
-            close(newsockfd);
-            continue;
+
+        while(newsockfd < 0){
+            ssize_t bytes_received = recv(newsockfd, buffer, sizeof(buffer) - 1, 0);
+            if (bytes_received < 0) {
+                perror("recv");
+                close(newsockfd);
+                continue;
+            }
+            printf("Received %zd bytes\n", bytes_received);
+            buffer[bytes_received] = '\0'; // Null-terminate the received string
+            printf("Received message: %s\n", buffer);
         }
-        printf("Received %zd bytes\n", bytes_received);
-        buffer[bytes_received] = '\0'; // Null-terminate the received string
-        printf("Received message: %s\n", buffer);
+
+       
 
         printf("Client connected\n");
         close(newsockfd);
@@ -97,21 +102,30 @@ void run_as_worker(int leader_ip){
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("connect");
         // Send a message to client
-
-        char *message = "Hello from worker";
-        while(1)
-        {
-            if (send(sockfd, message, strlen(message), 0) < 0) 
-            {
-            perror("send");
-            }
-            sleep(5);
-        }
+        
+  
     
         close(sockfd);
         exit(1);
     }
 
+    char *message = "Hello from worker";
+    while(1)
+    {   
+        int bytes_sent = send(sockfd, message, strlen(message), 0);
+        if (bytes_sent < 0) 
+        {
+        printf("Failed to send message to leader\n");
+        } 
+        else 
+        {
+            printf("Message sent to leader: %s\n", message);
+            printf("bytes sent: %zu\n", strlen(message));
+        }
+
+        printf("socket fd is %d\n", sockfd);
+    }
+    printf("breaking out of loop\n");
     //send message
     
 
