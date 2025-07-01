@@ -63,7 +63,7 @@ void run_as_leader() {
         char buffer[256];
         memset(buffer, 0, sizeof(buffer));
 
-        while(newsockfd < 0){
+        while(newsockfd > 0){
             ssize_t bytes_received = recv(newsockfd, buffer, sizeof(buffer) - 1, 0);
             if (bytes_received < 0) {
                 perror("recv");
