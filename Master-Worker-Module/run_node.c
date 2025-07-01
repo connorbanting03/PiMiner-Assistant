@@ -10,6 +10,17 @@ int run_node(int argc, char *argv[]){
     if (argc > 1 && strcmp(argv[1], "--leader") == 0){
         run_as_leader();
     }
+    else if (argc > 2 && strcmp(argv[1], "--worker") == 0) {
+        if (argc < 3) {
+            fprintf(stderr, "Usage: %s --worker <leader_ip>\n", argv[0]);
+            exit(1);
+        }
+        run_as_worker(argv[2]);
+    } else {
+        fprintf(stderr, "Usage: %s --leader | --worker <leader_ip>\n", argv[0]);
+        exit(1);
+    }
+
     return 0;
 }
 
