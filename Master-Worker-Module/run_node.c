@@ -6,137 +6,87 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-int run_node(int argc, char *argv[]){
-    if (argc > 1 && strcmp(argv[1], "--leader") == 0){
-        run_as_leader();
-    }
-    else if (argc > 2 && strcmp(argv[1], "--worker") == 0) {
-        if (argc < 3) {
-            fprintf(stderr, "Usage: %s --worker <leader_ip>\n", argv[0]);
-            exit(1);
-        }
-        run_as_worker(argv[2]);
-    } else {
-        fprintf(stderr, "Usage: %s --leader | --worker <leader_ip>\n", argv[0]);
-        exit(1);
-    }
-
-    return 0;
-}
+#define PORT 8080
 
 void run_as_leader() {
     int sockfd, newsockfd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
-    int port = 8080;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        exit(1);
-    }
+    if (sockfd < 0) { perror("socket"); exit(1); }
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(port);
-
-    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("bind");
-        close(sockfd);
-        exit(1);
+    server_addr.sin_port = htons(PORT);
+    if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("bind"); close(sockfd); exit(1);
     }
 
     if (listen(sockfd, 5) < 0) {
-        perror("listen");
-        close(sockfd);
-        exit(1);
+        perror("listen"); close(sockfd); exit(1);
     }
 
     while (1) {
-        newsockfd = accept(sockfd, (struct sockaddr *)&client_addr, &client_len);
-        if (newsockfd < 0) {
-            perror("accept");
-            continue;
-        }
-        // Setup polling to recieve message string
+        newsockfd = accept(sockfd, (struct sockaddr*)&client_addr, &client_len);
+        if (newsockfd < 0) { perror("accept"); continue; }
+
         char buffer[256];
-        memset(buffer, 0, sizeof(buffer));
-
-        while(newsockfd > 0){
+        while (1) {
             ssize_t bytes_received = recv(newsockfd, buffer, sizeof(buffer) - 1, 0);
-            if (bytes_received < 0) {
-                perror("recv");
-                close(newsockfd);
-                continue;
-            }
-            if(bytes_received > 0){
-                printf("Received %zd bytes\n", bytes_received);
-                buffer[bytes_received] = '\0'; // Null-terminate the received string
-                printf("Received message: %s\n", buffer);
-            }
-            //reply
-            const char *reply = "Message received by leader\0";
-            ssize_t bytes_sent = send(newsockfd, reply, strlen(reply), 0);
-            if (bytes_sent < 0) {
-                perror("send");
-                close(newsockfd);
-                continue;
-            }
-
-
+            if (bytes_received <= 0) break;
+            buffer[bytes_received] = '\0';
+            printf("%s", buffer);
         }
 
-
-        printf("Client connected\n");
         close(newsockfd);
     }
 
     close(sockfd);
 }
 
-void run_as_worker(int leader_ip){
-
-    //Need to connect to leader 
+void run_as_worker(const char *leader_ip, const char *duco_user) {
     int sockfd;
     struct sockaddr_in server_addr;
+
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        exit(1);
-    }
+    if (sockfd < 0) { perror("socket"); exit(1); }
 
     memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;  
-    server_addr.sin_port = htons(8080);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = inet_addr(leader_ip);
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("connect");
-        // Send a message to client
-        
-        close(sockfd);
+    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connect"); close(sockfd); exit(1);
+    }
+
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd), "python3 miner.py -u %s", duco_user);
+
+    FILE *fp = popen(cmd, "r");
+    if (!fp) { perror("popen"); close(sockfd); exit(1); }
+
+    char line[1024];
+    while (fgets(line, sizeof(line), fp)) {
+        size_t len = strlen(line);
+        if (send(sockfd, line, len, 0) < 0) break;
+    }
+
+    pclose(fp);
+    close(sockfd);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc > 1 && strcmp(argv[1], "--leader") == 0) {
+        run_as_leader();
+    }
+    else if (argc > 2 && strcmp(argv[1], "--worker") == 0) {
+        run_as_worker(argv[2], argv[3]);
+    }
+    else {
+        fprintf(stderr, "Usage: %s --leader | --worker <leader_ip> <duco_username>\n", argv[0]);
         exit(1);
     }
-
-    char *message = "Hello from worker\0";
-    while(1)
-    {   
-        int bytes_sent = send(sockfd, message, strlen(message), 0);
-        if (bytes_sent < 0) 
-        {
-        printf("Failed to send message to leader\n");
-        } 
-        else 
-        {
-            printf("Message sent to leader: %s\n", message);
-            printf("bytes sent: %zu\n", strlen(message));
-        }
-
-        printf("socket fd is %d\n", sockfd);
-        sleep(2);
-    }
-    printf("breaking out of loop\n");
-    //send message
-    
-
+    return 0;
 }
